@@ -12,12 +12,12 @@ function buildDinoEmbed(dino) {
     .setColor(0x2f3136) 
     .setTitle(`📊 Ficha de Crianza: ${dino.nombre}`)
     .addFields(
-      { name: '❤️ Puntos de HP', value: `\`${barra(dino.hp, 140000)}\` ${dino.hp.toLocaleString()}`, inline: false },
-      { name: '💥 Daño / Melee', value: `\`${barra(dino.melee, 2500)}\` ${dino.melee}%`, inline: false }
+      { name: '❤️ HP', value: `\`${barra(dino.hp, 140000)}\` ${dino.hp.toLocaleString()}`, inline: false },
+      { name: '💥 Daño', value: `\`${barra(dino.melee, 2500)}\` ${dino.melee}%`, inline: false }
     );
 
   if (dino.stamina > 0) {
-    embed.addFields({ name: '🍖 Stamina', value: `\`${barra(dino.stamina, 6000)}\` ${dino.stamina.toLocaleString()}`, inline: true });
+    embed.addFields({ name: '⚡️ Stamina', value: `\`${barra(dino.stamina, 6000)}\` ${dino.stamina.toLocaleString()}`, inline: true });
   }
   if (dino.peso > 0) {
     embed.addFields({ name: '⚖️ Peso', value: `\`${dino.peso.toLocaleString()}\``, inline: true });
