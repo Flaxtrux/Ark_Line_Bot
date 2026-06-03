@@ -15,7 +15,7 @@ El bot está diseñado bajo un modelo de aislamiento estricto por servidor (*Gui
 
 * **Buscador Inteligente Predictivo:** Implementación de *Autocompletado (Autocomplete)* en tiempo real para mitigar errores de sintaxis humana. Soporta un catálogo optimizado de más de 100 criaturas del ecosistema de ARK.
 * **Fichas Gráficas Automatizadas:** El backend mapea de forma nativa las imágenes oficiales de alta resolución para cada criatura, garantizando una estética homogénea y profesional sin intervención del usuario.
-* **Estadísticas Limpias (Enfoque PvP):** Eliminación de metadatos redundantes (niveles de personaje, nombres de servidores externos, duplicidad de especies). El bot registra estrictamente lo necesario para el cálculo de crianza y clonación.
+* **Estadísticas Limpias (Enfoque PvP):** Eliminación de metadatos redundantes (niveles de personaje, nombres de servidores externos, duplicidad de especies). El bot registra estrictamente lo necesario.
 * **Seguridad Avanzada:** Consultas preparadas mediante `better-sqlite3` para mitigar vectores de ataque por inyección SQL, junto con una lista blanca estricta de columnas mutables en el backend.
 
 ---
@@ -26,7 +26,7 @@ Todos los comandos se ejecutan de manera nativa mediante la interfaz de comandos
 
 * `/dino-add [linea] [hp] [melee] (stamina) (peso)` — Registra una nueva línea de crianza. El campo `linea` cuenta con autocompletado inteligente.
 * `/dino-update [linea] (hp) (melee) (stamina) (peso)` — Actualiza los parámetros modificados tras una mutación o actualización de línea.
-* `/dino-stats [linea]` — Despliega la ficha técnica visual e independiente con las barras de progreso dinámicas de la criatura.
+* `/dino-stats [linea]` — Despliega la ficha técnica visual e independiente.
 * `/dino-list` — Muestra un índice completo de todas las líneas de crianza que posee la tribu en ese servidor.
 * `/dino-delete [linea]` — Remueve de forma permanente el registro de la criatura seleccionada de la base de datos local.
 
