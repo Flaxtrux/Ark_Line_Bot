@@ -38,18 +38,29 @@ client.once('ready', async () => {
 });
 
 client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
-  const command = client.commands.get(interaction.commandName);
-  if (!command) return;
-  try {
-    await command.execute(interaction);
-  } catch (error) {
-    console.error(error);
-    const msg = { content: 'Hubo un error ejecutando este comando.', ephemeral: true };
-    interaction.replied || interaction.deferred
-      ? await interaction.followUp(msg)
-      : await interaction.reply(msg);
-  }
+    // Si Discord pide sugerencias de texto (Autocompletado)
+    if (interaction.isAutocomplete()) {
+        const command = client.commands.get(interaction.commandName);
+        if (!command) return;
+        try {
+            await command.autocomplete(interaction);
+        } catch (error) {
+            console.error(error);
+        }
+        return;
+    }
+
+    // Si el usuario confirma el comando (Hace ENTER)
+    if (interaction.isChatInputCommand()) {
+        const command = client.commands.get(interaction.commandName);
+        if (!command) return;
+        try {
+            await command.execute(interaction);
+        } catch (error) {
+            console.error(error);
+            await interaction.reply({ content: 'Hubo un error al ejecutar el comando.', ephemeral: true });
+        }
+    }
 });
 
 client.login(process.env.DISCORD_TOKEN);
