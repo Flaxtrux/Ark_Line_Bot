@@ -1,27 +1,42 @@
 const { SlashCommandBuilder } = require('discord.js');
-const db = require('../db');
-const { LISTA_COMPLETA } = require('../dinos-lista');
+const { getDino, deleteDino, listDinos } = require('../db');
 
 module.exports = {
-  data: new SlashCommandBuilder()
-    .setName('dino-delete')
-    .setDescription('Elimina permanentemente una línea del registro')
-    .addStringOption(o => o.setName('linea').setDescription('Selecciona la línea a borrar').setRequired(true).setAutocomplete(true)),
+    data: new SlashCommandBuilder()
+        .setName('dino-delete')
+        .setDescription('Elimina permanentemente una línea del registro')
+        .addStringOption(o =>
+            o.setName('criatura')
+             .setDescription('Selecciona la criatura a borrar')
+             .setRequired(true)
+             .setAutocomplete(true)),
 
-  async autocomplete(interaction) {
-    const focusedValue = interaction.options.getFocused().toLowerCase();
-    const filtrados = LISTA_COMPLETA.filter(dino => dino.toLowerCase().includes(focusedValue));
-    await interaction.respond(filtrados.slice(0, 25).map(dino => ({ name: dino, value: dino })));
-  },
+    async autocomplete(interaction) {
+        const focusedValue = interaction.options.getFocused().toLowerCase();
+        const todos = listDinos();
+        const filtrados = todos
+            .filter(d => d.criatura.toLowerCase().includes(focusedValue))
+            .slice(0, 25);
+        await interaction.respond(
+            filtrados.map(d => ({ name: d.criatura, value: d.criatura }))
+        );
+    },
 
-  async execute(interaction) {
-    const nombreLinea = interaction.options.getString('linea');
-    const result = db.deleteDino(nombreLinea, interaction.guildId);
+    async execute(interaction) {
+        const criatura = interaction.options.getString('criatura');
 
-    if (result.changes === 0) {
-      return interaction.reply({ content: `❌ No se pudo borrar porque no existe la línea **${nombreLinea}**.`, ephemeral: true });
+        const dino = getDino(criatura);
+        if (!dino) {
+            return interaction.reply({
+                content: `❌ No existe ningún registro de **${criatura}**.`,
+                ephemeral: true
+            });
+        }
+
+        deleteDino(criatura);
+
+        await interaction.reply({
+            content: `🗑️ Registro de **${criatura}** eliminado correctamente.`
+        });
     }
-
-    await interaction.reply({ content: `🗑️ Registro de **${nombreLinea}** eliminado del servidor de la tribu.` });
-  }
 };

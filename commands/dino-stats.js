@@ -1,28 +1,40 @@
 const { SlashCommandBuilder } = require('discord.js');
-const db = require('../db');
+const { getDino, listDinos } = require('../db');
 const { buildDinoEmbed } = require('../embed');
-const { LISTA_COMPLETA } = require('../dinos-lista');
 
 module.exports = {
-  data: new SlashCommandBuilder()
-    .setName('dino-stats')
-    .setDescription('Muestra la ficha técnica de una línea de crianza')
-    .addStringOption(o => o.setName('linea').setDescription('Selecciona la línea a consultar').setRequired(true).setAutocomplete(true)),
+    data: new SlashCommandBuilder()
+        .setName('dino-stats')
+        .setDescription('Muestra la ficha técnica de una línea de crianza')
+        .addStringOption(o =>
+            o.setName('criatura')
+             .setDescription('Selecciona la criatura a consultar')
+             .setRequired(true)
+             .setAutocomplete(true)),
 
-  async autocomplete(interaction) {
-    const focusedValue = interaction.options.getFocused().toLowerCase();
-    const filtrados = LISTA_COMPLETA.filter(dino => dino.toLowerCase().includes(focusedValue));
-    await interaction.respond(filtrados.slice(0, 25).map(dino => ({ name: dino, value: dino })));
-  },
+    async autocomplete(interaction) {
+        const focusedValue = interaction.options.getFocused().toLowerCase();
+        // Autocomplete desde los dinos YA registrados en la BD
+        const todos = listDinos();
+        const filtrados = todos
+            .filter(d => d.criatura.toLowerCase().includes(focusedValue))
+            .slice(0, 25);
+        await interaction.respond(
+            filtrados.map(d => ({ name: d.criatura, value: d.criatura }))
+        );
+    },
 
-  async execute(interaction) {
-    const nombreLinea = interaction.options.getString('linea');
-    const dino = db.getDino(nombreLinea, interaction.guildId);
+    async execute(interaction) {
+        const criatura = interaction.options.getString('criatura');
+        const dino = getDino(criatura);
 
-    if (!dino) {
-      return interaction.reply({ content: `❌ No se encontraron datos para **${nombreLinea}** en esta tribu.`, ephemeral: true });
+        if (!dino) {
+            return interaction.reply({
+                content: `❌ No se encontraron datos para **${criatura}**. Usa \`/dino-add\` para registrarla primero.`,
+                ephemeral: true
+            });
+        }
+
+        await interaction.reply({ embeds: [buildDinoEmbed(dino)] });
     }
-
-    await interaction.reply({ embeds: [buildDinoEmbed(dino)] });
-  }
 };
