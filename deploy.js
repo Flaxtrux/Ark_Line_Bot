@@ -3,6 +3,14 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
+// Forzamos la lectura del token
+const token = process.env.TOKEN;
+
+if (!token) {
+    console.error("❌ Error: No se encuentra la variable TOKEN en el archivo .env");
+    process.exit(1);
+}
+
 const commands = [];
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
@@ -15,23 +23,24 @@ for (const file of commandFiles) {
     }
 }
 
-const rest = new REST().setToken(process.env.TOKEN);
+const rest = new REST().setToken(token);
 
 (async () => {
     try {
-        console.log(`🔄 Actualizando ${commands.length} comandos en la API de Discord...`);
+        console.log(`🔄 Preparando actualización de ${commands.length} comandos...`);
         
-        // Obtenemos el ID del bot decodificando el Token de forma segura
-        const clientId = Buffer.from(process.env.TOKEN.split('.')[0], 'base64').toString('ascii');
+        // Sacamos el ID de la primera parte del Token de forma manual y robusta
+        const clientId = Buffer.from(token.split('.')[0], 'base64').toString('ascii');
+        console.log(`🤖 Aplicando cambios para el Bot ID: ${clientId}`);
 
-        // Esto limpia la caché de Discord de manera global e inyecta el comando nuevo
+        // Enviamos la lista limpia a la API de Discord
         await rest.put(
             Routes.applicationCommands(clientId),
             { body: commands },
         );
 
-        console.log('✅ ¡Comandos globales actualizados en Discord con éxito!');
+        console.log('✅ ¡Comandos globales actualizados en Discord con éxito! (La caché tardará unos instantes en limpiar)');
     } catch (error) {
-        console.error('❌ Error al registrar comandos:', error);
+        console.error('❌ Error crítico al registrar comandos:', error);
     }
 })();
