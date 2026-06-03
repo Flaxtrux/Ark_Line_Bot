@@ -1,6 +1,6 @@
 # ARK Line Manager Discord Bot
 
-Un bot de Discord autohospedado y de alto rendimiento diseñado para comunidades y tribus competitivas de ARK: Survival Ascended. Permite centralizar, registrar y consultar el inventario de estadísticas de las líneas de crianza puras (HP, Melee, Stamina, Peso) de forma rápida y visual mediante comandos integrados (*Slash Commands*).
+Un bot de Discord autohospedado y de alto rendimiento diseñado para comunidades y tribus competitivas de ARK. Permite centralizar, registrar y consultar el inventario de estadísticas de las líneas de crianza puras (HP, Melee, Stamina, Peso) de forma rápida y visual mediante comandos integrados (*Slash Commands*).
 
 ## Arquitectura de Privacidad Multitenant
 
