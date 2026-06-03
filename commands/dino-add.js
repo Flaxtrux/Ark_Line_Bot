@@ -1,26 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { upsertDino, getDino } = require('../db');
 const { crearEmbedDino } = require('../embed');
-
-const listaDinosARK = [
-    "Allosaurus", "Apatosaurus", "Ankylosaurus", "Archelon", "Arthropluera",
-    "Baryonyx", "Basilosaurus", "Brontosaurus", "Carcharodontosaurus",
-    "Carnotaurus", "Castoroides", "Ceratosaurus", "Chalicotherium", "Daeodon",
-    "Deinocheirus", "Dilophosaurus", "Dimorphodon", "Diplodocus", "Doedicurus",
-    "Dunkleosteus", "Electrophorus", "Fascinolasuchus", "Giganotosaurus",
-    "Gorgonopsid", "Hesperornis", "Ichthyornis", "Ichthyosaurus", "Iguanodon",
-    "Kairuku", "Kaprosuchus", "Kentro", "Liopleurodon", "Lymantria",
-    "Mammoth", "Manta", "Megachelon", "Megalania", "Megaloceros", "Megalodon",
-    "Megatherium", "Micro raptor", "Mosasaurus", "Onychonycteris", "Ouranosaurus",
-    "Oviraptor", "Pachy", "Pachyrhinosaurus", "Paraceratherium", "Parasaur",
-    "Pegomastax", "Pelagornis", "Phiomia", "Phoenix", "Placerias", "Plesiosaur",
-    "Procoptodon", "Pteranodon", "Pulmonoscorpius", "Purlovia", "Pyroraptor",
-    "Quetzal", "Raptor", "Rex", "Rhyniognatha", "Sabertooth", "Sarco",
-    "Shastasaurus", "Snow Owl", "Spino", "Stegosaurus", "Tapejara",
-    "Terror Bird", "Therizinosaurus", "Thylacoleo", "Titanoboa", "Titanosaur",
-    "Triceratops", "Tropeognathus", "Tusoteuthis", "Velonasaur", "Wyvern",
-    "Xiphactinus", "Yutyrannus", "Yi Ling"
-];
+const { LISTA_COMPLETA } = require('../dinos-lista');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -37,8 +18,8 @@ module.exports = {
         .addIntegerOption(option => option.setName('peso').setDescription('Puntos en Peso - Opcional').setRequired(false)),
 
     async autocomplete(interaction) {
-        const focusedValue = interaction.options.getFocused().toLowerCase();
-        const filtered = listaDinosARK.filter(dino =>
+        const focusedValue = (interaction.options.getFocused() ?? '').toLowerCase();
+        const filtered = LISTA_COMPLETA.filter(dino =>
             dino.toLowerCase().includes(focusedValue)
         );
         await interaction.respond(
@@ -54,13 +35,8 @@ module.exports = {
         const peso     = interaction.options.getInteger('peso')    ?? null;
 
         try {
-            // Guardar / fusionar con datos previos
             upsertDino(criatura, { hp, stamina, melee, peso });
-
-            // Leer la fila resultante para mostrar el estado COMPLETO (incluye valores previos)
             const filaActual = getDino(criatura);
-
-            // Responder con el Embed visual
             await interaction.reply({
                 embeds: [crearEmbedDino(criatura, filaActual)]
             });
