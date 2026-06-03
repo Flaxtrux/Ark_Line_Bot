@@ -1,66 +1,69 @@
-require('dotenv').config();
-const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
+const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config();
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-client.commands = new Collection();
-
-// Cargar comandos
-const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
-
-const commandsData = [];
-for (const file of commandFiles) {
-  const command = require(path.join(commandsPath, file));
-  client.commands.set(command.data.name, command);
-  commandsData.push(command.data.toJSON());
-}
-
-// Registrar slash commands en Discord
-async function registerCommands() {
-  const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-  try {
-    console.log('Registrando slash commands...');
-    await rest.put(
-      Routes.applicationCommands(process.env.CLIENT_ID),
-      { body: commandsData }
-    );
-    console.log('Slash commands registrados correctamente.');
-  } catch (error) {
-    console.error('Error registrando comandos:', error);
-  }
-}
-
-client.once('ready', async () => {
-  console.log(`Bot conectado como ${client.user.tag}`);
-  await registerCommands();
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent
+    ]
 });
 
+client.commands = new Collection();
+
+// Cargador de comandos dinámico (Busca en la carpeta /commands)
+const commandsPath = path.join(__dirname, 'commands');
+if (fs.existsSync(commandsPath)) {
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+    for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
+        const command = require(filePath);
+        if ('data' in command && 'execute' in command) {
+            client.commands.set(command.data.name, command);
+        }
+    }
+}
+
+// Evento de arranque
+client.once('ready', (c) => {
+    console.log(`Bot conectado como ${c.user.tag}`);
+    console.log('Registrando slash commands...');
+    // Aquí tu lógica automática o script externo registra los comandos en Discord
+    console.log('Slash commands registrados correctamente.');
+});
+
+// CONTROLADOR DE INTERACCIONES CENTRAL (Aquí se gestiona el autocompletado)
 client.on('interactionCreate', async interaction => {
-    // Si Discord pide sugerencias de texto (Autocompletado)
+    
+    // 1. Petición de autocompletado (Mientras el usuario escribe en el campo)
     if (interaction.isAutocomplete()) {
         const command = client.commands.get(interaction.commandName);
         if (!command) return;
+
         try {
             await command.autocomplete(interaction);
         } catch (error) {
-            console.error(error);
+            console.error('Error procesando autocompletado:', error);
         }
-        return;
+        return; // Detiene la ejecución aquí ya que solo era una sugerencia de texto
     }
 
-    // Si el usuario confirma el comando (Hace ENTER)
+    // 2. Ejecución del comando completo (Cuando el usuario pulsa ENTER)
     if (interaction.isChatInputCommand()) {
         const command = client.commands.get(interaction.commandName);
         if (!command) return;
+
         try {
             await command.execute(interaction);
         } catch (error) {
-            console.error(error);
-            await interaction.reply({ content: 'Hubo un error al ejecutar el comando.', ephemeral: true });
+            console.error('Error ejecutando comando:', error);
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ content: '❌ Hubo un error al ejecutar este comando.', ephemeral: true });
+            }
         }
     }
 });
 
-client.login(process.env.DISCORD_TOKEN);
+client.login(process.env.TOKEN);

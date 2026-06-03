@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const db = require('../db.js');
 
-// Lista oficial de criaturas de ARK para el autocompletado
+// Lista oficial completa de criaturas de ARK (Extraída de tu archivo local de dinos)
 const listaDinosARK = [
     "Allosaurus", "Apatosaurus", "Ankylosaurus", "Archelon", "Arthropluera",
     "Baryonyx", "Basilosaurus", "Brontosaurus", "Carcharodontosaurus",
@@ -30,34 +30,21 @@ module.exports = {
             option.setName('criatura')
                 .setDescription('Selecciona la criatura oficial de ARK')
                 .setRequired(true)
-                .setAutocomplete(true)) // Activamos el autocompletado
-        .addIntegerOption(option =>
-            option.setName('hp')
-                .setDescription('Puntos en Vida - Opcional')
-                .setRequired(false))
-        .addIntegerOption(option =>
-            option.setName('stamina')
-                .setDescription('Puntos en Energía - Opcional')
-                .setRequired(false))
-        .addIntegerOption(option =>
-            option.setName('melee')
-                .setDescription('Puntos en Daño - Opcional')
-                .setRequired(false))
-        .addIntegerOption(option =>
-            option.setName('peso')
-                .setDescription('Puntos en Peso - Opcional')
-                .setRequired(false)),
+                .setAutocomplete(true)) // Enlazado con la función autocomplete() de abajo
+        .addIntegerOption(option => option.setName('hp').setDescription('Puntos en Vida - Opcional').setRequired(false))
+        .addIntegerOption(option => option.setName('stamina').setDescription('Puntos en Energía - Opcional').setRequired(false))
+        .addIntegerOption(option => option.setName('melee').setDescription('Puntos en Daño - Opcional').setRequired(false))
+        .addIntegerOption(option => option.setName('peso').setDescription('Puntos en Peso - Opcional').setRequired(false)),
 
     async autocomplete(interaction) {
-        // Obtenemos lo que el usuario está escribiendo en el campo 'criatura'
         const focusedValue = interaction.options.getFocused().toLowerCase();
         
-        // Filtramos la lista oficial: buscamos qué dinos contienen las letras escritas
+        // Filtra los dinos de la lista que contienen las letras que escribe el usuario
         const filtered = listaDinosARK.filter(dino => 
             dino.toLowerCase().includes(focusedValue)
         );
         
-        // Discord solo permite mostrar un máximo de 25 opciones a la vez
+        // Discord rompe si mandas más de 25 opciones, limitamos con slice
         await interaction.respond(
             filtered.slice(0, 25).map(dino => ({ name: dino, value: dino }))
         );
@@ -71,7 +58,7 @@ module.exports = {
         const peso = interaction.options.getInteger('peso') ?? null;
 
         try {
-            // Guardamos o actualizamos los puntos del dino en la base de datos
+            // Guardar o actualizar si ya existe la criatura (ON CONFLICT)
             const stmt = db.prepare(`
                 INSERT INTO dinos (criatura, hp, stamina, melee, peso) 
                 VALUES (?, ?, ?, ?, ?)
