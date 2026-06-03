@@ -7,20 +7,12 @@ module.exports = {
         .setDescription('Muestra un índice con todas las líneas registradas'),
 
     async execute(interaction) {
-        const dinos = listDinos();
+        const dinos = listDinos(interaction.guildId);
 
-        if (dinos.length === 0) {
-            return interaction.reply({
-                content: '📭 Aún no hay ninguna línea registrada. Usa `/dino-add` para empezar.',
-                ephemeral: true
-            });
-        }
+        if (dinos.length === 0) return interaction.reply({ content: '📭 Aún no hay ninguna línea registrada. Usa `/dino-add` para empezar.', ephemeral: true });
 
         const fmt = (val) => (val !== null && val !== undefined) ? val : '—';
-
-        const listaTexto = dinos
-            .map(d => `🦕 **${d.criatura}** — HP: ${fmt(d.hp)} | Stamina: ${fmt(d.stamina)} | Melee: ${fmt(d.melee)} | Peso: ${fmt(d.peso)}`)
-            .join('\n');
+        const listaTexto = dinos.map(d => `🦕 **${d.criatura}** — HP: ${fmt(d.hp)} | Stamina: ${fmt(d.stamina)} | Melee: ${fmt(d.melee)} | Peso: ${fmt(d.peso)}`).join('\n');
 
         const embed = new EmbedBuilder()
             .setColor(0x2f3136)

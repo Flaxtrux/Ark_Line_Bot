@@ -13,27 +13,22 @@ module.exports = {
              .setAutocomplete(true)),
 
     async autocomplete(interaction) {
-        const focusedValue = interaction.options.getFocused().toLowerCase();
-        // Autocomplete desde los dinos YA registrados en la BD
-        const todos = listDinos();
-        const filtrados = todos
-            .filter(d => d.criatura.toLowerCase().includes(focusedValue))
-            .slice(0, 25);
-        await interaction.respond(
-            filtrados.map(d => ({ name: d.criatura, value: d.criatura }))
-        );
+        try {
+            const focusedValue = (interaction.options.getFocused() ?? '').toLowerCase();
+            const todos = listDinos(interaction.guildId);
+            const filtrados = todos.filter(d => d.criatura.toLowerCase().includes(focusedValue)).slice(0, 25);
+            await interaction.respond(filtrados.map(d => ({ name: d.criatura, value: d.criatura })));
+        } catch {
+            await interaction.respond([]);
+        }
     },
 
     async execute(interaction) {
         const criatura = interaction.options.getString('criatura');
-        const dino = getDino(criatura);
+        if (!criatura) return interaction.reply({ content: '⚠️ Selecciona una criatura de la lista.', ephemeral: true });
 
-        if (!dino) {
-            return interaction.reply({
-                content: `❌ No se encontraron datos para **${criatura}**. Usa \`/dino-add\` para registrarla primero.`,
-                ephemeral: true
-            });
-        }
+        const dino = getDino(interaction.guildId, criatura);
+        if (!dino) return interaction.reply({ content: `❌ No hay registro para **${criatura}**. Usa \`/dino-add\` primero.`, ephemeral: true });
 
         await interaction.reply({ embeds: [buildDinoEmbed(dino)] });
     }

@@ -19,15 +19,12 @@ module.exports = {
 
     async autocomplete(interaction) {
         const focusedValue = (interaction.options.getFocused() ?? '').toLowerCase();
-        const filtered = LISTA_COMPLETA.filter(dino =>
-            dino.toLowerCase().includes(focusedValue)
-        );
-        await interaction.respond(
-            filtered.slice(0, 25).map(dino => ({ name: dino, value: dino }))
-        );
+        const filtered = LISTA_COMPLETA.filter(dino => dino.toLowerCase().includes(focusedValue));
+        await interaction.respond(filtered.slice(0, 25).map(dino => ({ name: dino, value: dino })));
     },
 
     async execute(interaction) {
+        const guildId  = interaction.guildId;
         const criatura = interaction.options.getString('criatura');
         const hp       = interaction.options.getInteger('hp')      ?? null;
         const stamina  = interaction.options.getInteger('stamina') ?? null;
@@ -35,17 +32,12 @@ module.exports = {
         const peso     = interaction.options.getInteger('peso')    ?? null;
 
         try {
-            upsertDino(criatura, { hp, stamina, melee, peso });
-            const filaActual = getDino(criatura);
-            await interaction.reply({
-                embeds: [crearEmbedDino(criatura, filaActual)]
-            });
+            upsertDino(guildId, criatura, { hp, stamina, melee, peso });
+            const filaActual = getDino(guildId, criatura);
+            await interaction.reply({ embeds: [crearEmbedDino(criatura, filaActual)] });
         } catch (error) {
             console.error(error);
-            await interaction.reply({
-                content: '❌ Hubo un error al guardar los datos en la base de datos.',
-                ephemeral: true
-            });
+            await interaction.reply({ content: '❌ Hubo un error al guardar los datos en la base de datos.', ephemeral: true });
         }
     },
 };
