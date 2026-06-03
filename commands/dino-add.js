@@ -1,54 +1,54 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { v4: uuidv4 } = require('uuid');
-const db = require('../db');
-const { buildDinoEmbed } = require('../embed');
-const { LISTA_COMPLETA } = require('../dinos-lista');
+const db = require('../db.js');
+
+// Lista fija de criaturas de ARK para el autocompletado rápido
+const criaturasARK = ['Rex', 'Giganotosaurus', 'Carcharodontosaurus', 'Therizinosaurus', 'Wyvern', 'Arthropluera', 'Ankylosaurus'];
 
 module.exports = {
-  data: new SlashCommandBuilder()
-    .setName('dino-add')
-    .setDescription('Registra una nueva línea de crianza de la tribu')
-    .addStringOption(o => o.setName('linea').setDescription('Selecciona la criatura').setRequired(true).setAutocomplete(true))
-    .addIntegerOption(o => o.setName('hp').setDescription('Puntos de HP puros').setRequired(true).setMinValue(0))
-    .addIntegerOption(o => o.setName('melee').setDescription('Porcentaje de Melee/Daño (Ej: 1255)').setRequired(true).setMinValue(0))
-    .addIntegerOption(o => o.setName('stamina').setDescription('Puntos de Stamina').setRequired(false).setMinValue(0))
-    .addIntegerOption(o => o.setName('peso').setDescription('Puntos de Peso').setRequired(false).setMinValue(0)),
+    data: new SlashCommandBuilder()
+        .setName('dino-add')
+        .setDescription('Añade una nueva línea de dino usando puntos de nivel')
+        .addStringOption(option =>
+            option.setName('linea')
+                .setDescription('Nombre o dueño de la línea (Ej: Rex_Mutado_Top)')
+                .setRequired(true))
+        .addStringOption(option =>
+            option.setName('criatura')
+                .setDescription('Selecciona o escribe la criatura')
+                .setRequired(true)
+                .setAutocomplete(true)) // Activamos el autocompletado aquí
+        .addIntegerOption(option =>
+            option.setName('hp')
+                .setDescription('Puntos asignados a Vida (Ej: 45) - Opcional')
+                .setRequired(false))
+        .addIntegerOption(option =>
+            option.setName('melee')
+                .setDescription('Puntos asignados a Daño (Ej: 52) - Opcional')
+                .setRequired(false)),
 
-  async autocomplete(interaction) {
-    const focusedValue = interaction.options.getFocused().toLowerCase();
-    const filtrados = LISTA_COMPLETA.filter(dino => dino.toLowerCase().includes(focusedValue));
-    await interaction.respond(filtrados.slice(0, 25).map(dino => ({ name: dino, value: dino })));
-  },
+    async autocomplete(interaction) {
+        const focusedValue = interaction.options.getFocused().toLowerCase();
+        // Filtramos las criaturas que coincidan con lo que escribe el usuario
+        const filtered = criaturasARK.filter(choice => choice.toLowerCase().includes(focusedValue));
+        
+        // Respondemos a Discord antes de que expire el tiempo de carga (máx 25 opciones)
+        await interaction.respond(
+            filtered.slice(0, 25).map(choice => ({ name: choice, value: choice }))
+        );
+    },
 
-  async execute(interaction) {
-    const nombreLinea = interaction.options.getString('linea');
-    const guildId = interaction.guildId;
+    async execute(interaction) {
+        const linea = interaction.options.getString('linea');
+        const criatura = interaction.options.getString('criatura');
+        
+        // Si el usuario no los pone, el valor por defecto será NULL o "No asignado"
+        const hp = interaction.options.getInteger('hp') ?? 'N/A';
+        const melee = interaction.options.getInteger('melee') ?? 'N/A';
 
-    if (!LISTA_COMPLETA.includes(nombreLinea)) {
-      return interaction.reply({ content: '❌ Por favor, selecciona un dinosaurio válido usando el buscador predictivo.', ephemeral: true });
-    }
+        // Guardamos los puntos de nivel en la base de datos
+        const stmt = db.prepare('INSERT INTO dinos (linea, criatura, hp, melee) VALUES (?, ?, ?, ?)');
+        stmt.run(linea, criatura, hp === 'N/A' ? null : hp, melee === 'N/A' ? null : melee);
 
-    if (db.getDino(nombreLinea, guildId)) {
-      return interaction.reply({ content: `❌ La línea de **${nombreLinea}** ya está registrada. Usa \`/dino-update\` si ha mutado.`, ephemeral: true });
-    }
-
-    const dino = {
-      id: uuidv4().slice(0, 8),
-      nombre:     nombreLinea,
-      especie:    nombreLinea,
-      nivel:      1, 
-      imagen_url: null,
-      hp:         interaction.options.getInteger('hp'),
-      melee:      interaction.options.getInteger('melee'),
-      stamina:    interaction.options.getInteger('stamina') ?? 0,
-      peso:       interaction.options.getInteger('peso')    ?? 0,
-      oxigeno:    0,
-      servidor:   'Interno',
-      tribu:      'Tribu',
-      guild_id:   guildId
-    };
-
-    db.addDino(dino);
-    await interaction.reply({ content: `✅ Línea de **${nombreLinea}** registrada con éxito.`, embeds: [buildDinoEmbed(dino)] });
-  }
+        await interaction.reply(`✅ **Línea registrada con éxito:**\n• **Criatura:** ${criatura}\n• **Identificador:** ${linea}\n• **Puntos HP:** ${hp}\n• **Puntos Melee:** ${melee}`);
+    },
 };
