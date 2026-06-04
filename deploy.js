@@ -2,7 +2,7 @@ const { REST, Routes } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
-const token = process.env.TOKEN;
+const token = process.env.DISCORD_TOKEN;
 
 if (!token) {
     console.error("❌ Error crítico: El contenedor no ha recibido la variable TOKEN.");

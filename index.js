@@ -2,7 +2,7 @@ const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
-if (!process.env.TOKEN) {
+if (!process.env.DISCORD_TOKEN) {
     console.error('❌ TOKEN no encontrado, revisa el .env');
     process.exit(1);
 }
@@ -76,4 +76,4 @@ process.on('unhandledRejection', (error) => {
     console.error('❌ Error no controlado:', error);
 });
 
-client.login(process.env.TOKEN);
+client.login(process.env.DISCORD_TOKEN);

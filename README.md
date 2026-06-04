@@ -48,6 +48,20 @@ Bot de Discord autohospedado para comunidades y tribus competitivas de ARK: Surv
 
 ---
 
+## Variables de Entorno
+
+Crea un archivo `.env` en la raíz del proyecto con las siguientes variables:
+
+```env
+DISCORD_TOKEN=tu_bot_token_aqui
+CLIENT_ID=tu_client_id_aqui
+```
+
+> El token lo encuentras en el [Developer Portal](https://discord.com/developers/applications) → tu app → **Bot → Token**.
+> El Client ID está en **OAuth2 → Client ID**.
+
+---
+
 ## Requisitos Previos
 
 - Cuenta en el [Discord Developer Portal](https://discord.com/developers/applications) con una aplicación creada.
