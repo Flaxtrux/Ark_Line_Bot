@@ -1,156 +1,244 @@
-# ARK Line Manager Discord Bot
+# ASE_Dino_Bot
 
-Un bot de Discord autohospedado y de alto rendimiento diseñado para comunidades y tribus competitivas de ARK. Permite centralizar, registrar y consultar el inventario de estadísticas de las líneas de crianza puras (HP, Melee, Stamina, Peso) de forma rápida y visual mediante comandos integrados (*Slash Commands*).
-
-## Arquitectura de Privacidad Multitenant
-
-El bot está diseñado bajo un modelo de aislamiento estricto por servidor (*Guild Isolation*).
-
-* **Filtrado por `guild_id`:** Aunque el bot sea utilizado por múltiples tribus en servidores de Discord independientes, los datos se almacenan y filtran indexando la ID única del servidor de origen (`guild_id`).
-* **Estanqueidad de Datos:** Es técnicamente imposible que los miembros de una tribu consulten, editen o verifiquen la existencia de las estadísticas registradas por otra tribu enemiga o aliada. Cada servidor opera en un entorno de base de datos virtualmente aislado de forma transparente para el usuario.
+Bot de Discord autohospedado para comunidades y tribus competitivas de ARK: Survival Evolved / Ascended. Centraliza el registro y consulta de estadísticas de líneas de crianza puras (HP, Stamina, Melee, Peso) mediante Slash Commands con autocompletado, fichas gráficas con imagen oficial de cada criatura y aislamiento total de datos por servidor.
 
 ---
 
-## Características Principales
+## Características
 
-* **Buscador Inteligente Predictivo:** Implementación de *Autocompletado (Autocomplete)* en tiempo real para mitigar errores de sintaxis humana. Soporta un catálogo optimizado de más de 100 criaturas del ecosistema de ARK.
-* **Fichas Gráficas Automatizadas:** El backend mapea de forma nativa las imágenes oficiales de alta resolución para cada criatura, garantizando una estética homogénea y profesional sin intervención del usuario.
-* **Estadísticas Limpias (Enfoque PvP):** Eliminación de metadatos redundantes (niveles de personaje, nombres de servidores externos, duplicidad de especies). El bot registra estrictamente lo necesario.
-* **Seguridad Avanzada:** Consultas preparadas mediante `better-sqlite3` para mitigar vectores de ataque por inyección SQL, junto con una lista blanca estricta de columnas mutables en el backend.
+- **Aislamiento por servidor (Guild Isolation):** Los datos de cada tribu son completamente independientes. Un servidor nunca puede ver ni modificar los registros de otro.
+- **Autocompletado inteligente:** Catálogo de más de 125 criaturas oficiales de ARK con búsqueda predictiva en tiempo real.
+- **Fichas gráficas:** Cada respuesta incluye un Embed con la imagen oficial de la criatura obtenida de la ARK Wiki.
+- **Persistencia con SQLite:** Base de datos local ligera gestionada con `better-sqlite3`. Sin dependencias externas de base de datos.
+- **Despliegue con Docker:** Contenedor listo para producción, sin necesidad de instalar Node.js en el host.
 
 ---
 
-## Comandos Disponibles
+## Comandos
 
-Todos los comandos se ejecutan de manera nativa mediante la interfaz de comandos de Discord:
-
-* `/dino-add [linea] [hp] [melee] (stamina) (peso)` — Registra una nueva línea de crianza. El campo `linea` cuenta con autocompletado inteligente.
-* `/dino-update [linea] (hp) (melee) (stamina) (peso)` — Actualiza los parámetros modificados tras una mutación o actualización de línea.
-* `/dino-stats [linea]` — Despliega la ficha técnica visual e independiente.
-* `/dino-list` — Muestra un índice completo de todas las líneas de crianza que posee la tribu en ese servidor.
-* `/dino-delete [linea]` — Remueve de forma permanente el registro de la criatura seleccionada de la base de datos local.
+| Comando | Descripción |
+|---|---|
+| `/dino-add [criatura] (hp) (stamina) (melee) (peso)` | Registra o actualiza una línea de crianza. Los stats son opcionales y se fusionan con los existentes. |
+| `/dino-stats [criatura]` | Muestra la ficha técnica visual de una línea registrada. |
+| `/dino-list` | Lista todas las líneas registradas en el servidor actual. |
+| `/dino-update [criatura] (hp) (stamina) (melee) (peso)` | Actualiza uno o más stats de una línea existente. |
+| `/dino-delete [criatura]` | Elimina permanentemente el registro de una criatura. |
 
 ---
 
 ## Estructura del Proyecto
 
-```filepath
-├── commands/            # Módulos individuales de los Slash Commands
+```
+├── commands/
 │   ├── dino-add.js
 │   ├── dino-delete.js
 │   ├── dino-list.js
 │   ├── dino-stats.js
 │   └── dino-update.js
-├── db.js                # Configuración de SQLite y capa de abstracción de datos
-├── dinos-lista.js       # Repositorio estático de criaturas y mapeo de URLs de imágenes
-├── embed.js             # Factoría constructora de interfaces ricas (EmbedBuilder)
-├── index.js             # Punto de entrada de la aplicación y manejador de interacciones Discord
-├── package.json         # Manifiesto de dependencias del proyecto
-└── .env                 # Credenciales sensibles del entorno (Ignorado en Git)
+├── db.js                # Capa de datos SQLite con aislamiento por guild_id
+├── dinos-lista.js       # Catálogo de criaturas y URLs de imágenes oficiales
+├── embed.js             # Constructor de Embeds visuales
+├── index.js             # Punto de entrada y gestor de interacciones
+├── deploy.js            # Script de registro de Slash Commands en la API de Discord
+├── package.json
+├── Dockerfile
+├── docker-compose.yml
+└── .env                 # Credenciales (no incluido en el repositorio)
 ```
 
 ---
 
-## Guía de Despliegue en Servidor (Debian)
+## Requisitos Previos
 
-Sigue estos pasos detallados para preparar el entorno e iniciar el bot en una instancia limpia de **Debian 11 / 12**.
+- Cuenta en el [Discord Developer Portal](https://discord.com/developers/applications) con una aplicación creada.
+- Token del bot y Client ID disponibles.
+- Docker y Docker Compose instalados en el servidor host.
 
-### Paso 1: Actualizar el Sistema y Herramientas Base
+---
 
-Conéctate por SSH a tu servidor Debian y ejecuta:
+## Despliegue con Docker (Recomendado)
+
+Este es el método recomendado para cualquier sistema operativo (Linux, Windows Server, macOS).
+
+### 1. Clonar el repositorio
 
 ```bash
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y git curl build-essential
+git clone https://github.com/Flaxtrux/Ark_Line_Bot.git
+cd Ark_Line_Bot
 ```
 
-### Paso 2: Instalar Node.js (Versión Recomendada LTSC)
-
-Instalamos el runtime de Node.js a través del repositorio oficial de NodeSource:
+### 2. Configurar las variables de entorno
 
 ```bash
+cp .env.example .env
+nano .env
+```
+
+Rellena el archivo con tus credenciales:
+
+```env
+TOKEN=tu_bot_token_aqui
+CLIENT_ID=tu_client_id_aqui
+```
+
+### 3. Construir e iniciar el contenedor
+
+```bash
+sudo docker compose up -d --build
+```
+
+### 4. Registrar los Slash Commands en Discord
+
+Este paso solo es necesario la primera vez o cuando cambies la estructura de algún comando:
+
+```bash
+sudo docker compose exec -e TOKEN=$(grep TOKEN .env | cut -d '=' -f2 | xargs) ark-bot node deploy.js
+```
+
+### 5. Verificar que el bot está corriendo
+
+```bash
+sudo docker compose logs -f ark-bot
+```
+
+Deberías ver `Bot conectado como ASE_Dino_Bot#XXXX`.
+
+### Comandos de gestión
+
+```bash
+# Detener el bot
+sudo docker compose down
+
+# Reiniciar tras actualizar archivos
+sudo docker compose up -d --build
+
+# Ver logs en tiempo real
+sudo docker compose logs -f ark-bot
+
+# Inspeccionar la base de datos
+sudo docker compose exec ark-bot node -e \
+  "const Database = require('better-sqlite3'); \
+   const db = new Database('./dinos.db'); \
+   console.table(db.prepare('SELECT * FROM dinos').all());"
+```
+
+---
+
+## Despliegue en Debian / Ubuntu sin Docker
+
+Si prefieres correr el bot directamente en el sistema sin contenedores.
+
+### 1. Instalar Node.js 20
+
+```bash
+sudo apt update && sudo apt install -y curl git build-essential
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
 ```
 
-*Verifica la instalación ejecutando `node -v` y `npm -v`.*
-
-### Paso 3: Clonar el Proyecto y Preparar Directorios
+### 2. Clonar e instalar dependencias
 
 ```bash
-git clone https://github.com/tu-usuario/ark-stats-bot.git
-cd ark-stats-bot
-```
-
-### Paso 4: Instalar las Dependencias del Backend
-
-Instalamos los paquetes necesarios. `better-sqlite3` se compilará de forma nativa en tu Debian gracias al paquete `build-essential` instalado previamente:
-
-```bash
+git clone https://github.com/Flaxtrux/Ark_Line_Bot.git
+cd Ark_Line_Bot
 npm install
 ```
 
-### Paso 5: Configurar las Variables de Entorno
-
-Crea un archivo de configuración `.env` en la raíz del proyecto para almacenar de forma segura las credenciales obtenidas en el [Discord Developer Portal](https://www.google.com/search?q=https://discord.com/developers/applications):
+### 3. Configurar el entorno
 
 ```bash
-nvim .env
+cp .env.example .env
+nano .env
+# Rellena TOKEN y CLIENT_ID
 ```
 
-Pega el siguiente contenido y reemplaza con tus datos:
-
-```env
-DISCORD_TOKEN=tu_bot_token_secreto_aqui
-CLIENT_ID=tu_client_id_del_bot_aqui
-```
-
-*Para guardar y salir en nvim presiona `:wq` y luego `Enter`.*
-
-### Paso 6: Configurar PM2 para Producción (Persistencia 24/7)
-
-Instalamos globalmente el gestor de procesos PM2 para asegurar que el bot se reinicie automáticamente si el servidor Debian experimenta un apagón o el proceso falla:
+### 4. Registrar los Slash Commands
 
 ```bash
-sudo npm install -pm2 -g
+node deploy.js
 ```
 
-Iniciamos el bot e inyectamos los comandos con soporte de autocompletado en la API de Discord:
+### 5. Iniciar con PM2 (persistencia 24/7)
 
 ```bash
-pm2 start index.js --name "ark-bot"
-```
-
-Para asegurarte de que el bot arranque solo al encender el VPS o servidor Debian, genera el script de inicio con:
-
-```bash
-pm2 startup systemd
-```
-
-*(Copia y pega en la terminal la línea de comando que PM2 te devuelva al final de la pantalla).*
-
-Guarda el estado actual:
-
-```bash
+sudo npm install -g pm2
+pm2 start index.js --name ark-bot
+pm2 startup systemd   # Genera el comando para arranque automático al reiniciar
 pm2 save
 ```
 
-### Comandos Útiles de Monitorización en Debian
+### Comandos de gestión con PM2
 
-* Ver logs en tiempo real (Interacciones, altas y registros): `pm2 logs ark-bot`
-* Reiniciar el bot de forma limpia (Ej: al editar `dinos-lista.js`): `pm2 restart ark-bot`
-* Detener el bot por mantenimiento: `pm2 stop ark-bot`
+```bash
+pm2 logs ark-bot        # Logs en tiempo real
+pm2 restart ark-bot     # Reiniciar tras cambios en el código
+pm2 stop ark-bot        # Detener por mantenimiento
+pm2 status              # Ver estado de todos los procesos
+```
+
+---
+
+## Despliegue en Windows Server
+
+### 1. Instalar Node.js
+
+Descarga el instalador LTS desde [nodejs.org](https://nodejs.org) y ejecútalo. Verifica la instalación:
+
+```powershell
+node -v
+npm -v
+```
+
+### 2. Clonar el repositorio
+
+```powershell
+git clone https://github.com/Flaxtrux/Ark_Line_Bot.git
+cd Ark_Line_Bot
+npm install
+```
+
+### 3. Configurar el entorno
+
+Crea un archivo `.env` en la raíz del proyecto con el Bloc de notas o cualquier editor:
+
+```env
+TOKEN=tu_bot_token_aqui
+CLIENT_ID=tu_client_id_aqui
+```
+
+### 4. Registrar los Slash Commands
+
+```powershell
+node deploy.js
+```
+
+### 5. Iniciar con PM2
+
+```powershell
+npm install -g pm2
+pm2 start index.js --name ark-bot
+pm2 save
+pm2 startup
+```
+
+Para que PM2 arranque como servicio de Windows al reiniciar el servidor, instala el módulo adicional:
+
+```powershell
+npm install -g pm2-windows-startup
+pm2-windows-startup install
+```
+
+---
+
+## Notas de Producción
+
+- El archivo `dinos.db` se crea automáticamente en la raíz del proyecto al primer arranque.
+- En Docker, la base de datos persiste en el volumen `./dinos.db` mapeado en el `docker-compose.yml`. No se pierde al reconstruir el contenedor.
+- El bot opera en modo privado. Para añadirlo a un nuevo servidor, el owner debe hacerlo manualmente desde el Developer Portal con el bot en modo no público.
+- Los Slash Commands son globales y tardan hasta 1 hora en propagarse a todos los servidores tras un nuevo `deploy.js`.
 
 ---
 
 ## Licencia
 
-Este proyecto está licenciado bajo la **Licencia Apache 2.0** (Apache License 2.0).
-
-Eres libre de utilizar, modificar y distribuir este software para las necesidades competitivas de tu comunidad, alianza de juego o fines comerciales, bajo las siguientes condiciones:
-
-* **Atribución:** Debes incluir una copia de la licencia original y mantener los avisos de derechos de autor (copyright) del desarrollador original en cualquier copia o subderivado del código.
-* **Declaración de Cambios:** Si realizas modificaciones sustanciales en los archivos existentes de este bot, estás obligado a añadir una notificación prominente en los archivos modificados indicando que el código original ha sido alterado.
-* **Protección de Patentes:** Esta licencia te otorga una concesión expresa de derechos de patente por parte de los colaboradores, protegiendo al usuario final de litigios legales relacionados con la propiedad intelectual del software.
-
-Para más detalles sobre los términos legales, consulta el archivo `LICENSE` en la raíz de este repositorio o visita [http://www.apache.org/licenses/LICENSE-2.0](https://www.google.com/search?q=http%3A%2F%2Fwww.apache.org%2Flicenses%2FLICENSE-2.0).
+Licenciado bajo la [Apache License 2.0](LICENSE).

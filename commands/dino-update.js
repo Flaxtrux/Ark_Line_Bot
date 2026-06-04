@@ -7,17 +7,17 @@ module.exports = {
         .setName('dino-update')
         .setDescription('Actualiza las estadísticas de una línea existente')
         .addStringOption(o =>
-            o.setName('criatura').setDescription('Selecciona la criatura a modificar').setRequired(true).setAutocomplete(true))
-        .addIntegerOption(o => o.setName('hp').setDescription('Nueva stat de HP').setRequired(false).setMinValue(0))
-        .addIntegerOption(o => o.setName('stamina').setDescription('Nueva Stamina').setRequired(false).setMinValue(0))
-        .addIntegerOption(o => o.setName('melee').setDescription('Nuevo Melee').setRequired(false).setMinValue(0))
-        .addIntegerOption(o => o.setName('peso').setDescription('Nuevo Peso').setRequired(false).setMinValue(0)),
+            o.setName('criatura').setDescription('Criatura a modificar').setRequired(true).setAutocomplete(true))
+        .addIntegerOption(o => o.setName('hp').setDescription('Nueva stat de HP').setRequired(false).setMinValue(0).setMaxValue(100000))
+        .addIntegerOption(o => o.setName('stamina').setDescription('Nueva Stamina').setRequired(false).setMinValue(0).setMaxValue(100000))
+        .addIntegerOption(o => o.setName('melee').setDescription('Nuevo Melee').setRequired(false).setMinValue(0).setMaxValue(100000))
+        .addIntegerOption(o => o.setName('peso').setDescription('Nuevo Peso').setRequired(false).setMinValue(0).setMaxValue(100000)),
 
     async autocomplete(interaction) {
         try {
-            const focusedValue = (interaction.options.getFocused() ?? '').toLowerCase();
+            const input = (interaction.options.getFocused() ?? '').toLowerCase();
             const todos = listDinos(interaction.guildId);
-            const filtrados = todos.filter(d => d.criatura.toLowerCase().includes(focusedValue)).slice(0, 25);
+            const filtrados = todos.filter(d => d.criatura.toLowerCase().includes(input)).slice(0, 25);
             await interaction.respond(filtrados.map(d => ({ name: d.criatura, value: d.criatura })));
         } catch {
             await interaction.respond([]);
@@ -44,8 +44,13 @@ module.exports = {
 
         if (Object.keys(campos).length === 0) return interaction.reply({ content: '⚠️ Rellena al menos una estadística.', ephemeral: true });
 
-        updateDino(guildId, criatura, campos);
-        const actualizado = getDino(guildId, criatura);
-        await interaction.reply({ content: `⚡ Stats de **${criatura}** actualizadas.`, embeds: [buildDinoEmbed(actualizado)] });
+        try {
+            updateDino(guildId, criatura, campos);
+            const actualizado = getDino(guildId, criatura);
+            await interaction.reply({ content: `⚡ Stats de **${criatura}** actualizadas.`, embeds: [buildDinoEmbed(actualizado)] });
+        } catch (error) {
+            console.error(error);
+            await interaction.reply({ content: '❌ Error al actualizar los datos.', ephemeral: true });
+        }
     }
 };

@@ -3,6 +3,11 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
+if (!process.env.TOKEN) {
+    console.error('❌ TOKEN no encontrado, revisa el .env');
+    process.exit(1);
+}
+
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -13,57 +18,63 @@ const client = new Client({
 
 client.commands = new Collection();
 
-// Cargador de comandos dinámico (Busca en la carpeta /commands)
 const commandsPath = path.join(__dirname, 'commands');
 if (fs.existsSync(commandsPath)) {
-    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+    const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
     for (const file of commandFiles) {
-        const filePath = path.join(commandsPath, file);
-        const command = require(filePath);
-        if ('data' in command && 'execute' in command) {
-            client.commands.set(command.data.name, command);
+        try {
+            const command = require(path.join(commandsPath, file));
+            if ('data' in command && 'execute' in command) {
+                client.commands.set(command.data.name, command);
+            } else {
+                console.warn(`⚠️ ${file} ignorado: falta 'data' o 'execute'`);
+            }
+        } catch (err) {
+            console.error(`❌ Error cargando ${file}:`, err);
         }
     }
 }
 
-// Evento de arranque
-client.once('ready', (c) => {
-    console.log(`Bot conectado como ${c.user.tag}`);
-    console.log('Registrando slash commands...');
-    // Aquí tu lógica automática o script externo registra los comandos en Discord
-    console.log('Slash commands registrados correctamente.');
+client.once('clientReady', (c) => {
+    console.log(`✅ Bot conectado como ${c.user.tag}`);
+    console.log(`📦 ${client.commands.size} comandos cargados.`);
 });
 
-// CONTROLADOR DE INTERACCIONES CENTRAL (Aquí se gestiona el autocompletado)
 client.on('interactionCreate', async interaction => {
-    
-    // 1. Petición de autocompletado (Mientras el usuario escribe en el campo)
+    if (!interaction.guildId) return; // ignorar DMs
+
     if (interaction.isAutocomplete()) {
         const command = client.commands.get(interaction.commandName);
-        if (!command) return;
-
+        if (!command?.autocomplete) return;
         try {
             await command.autocomplete(interaction);
         } catch (error) {
-            console.error('Error procesando autocompletado:', error);
+            console.error(`Error autocomplete ${interaction.commandName}:`, error);
         }
-        return; // Detiene la ejecución aquí ya que solo era una sugerencia de texto
+        return;
     }
 
-    // 2. Ejecución del comando completo (Cuando el usuario pulsa ENTER)
     if (interaction.isChatInputCommand()) {
         const command = client.commands.get(interaction.commandName);
         if (!command) return;
-
         try {
             await command.execute(interaction);
         } catch (error) {
-            console.error('Error ejecutando comando:', error);
-            if (!interaction.replied && !interaction.deferred) {
-                await interaction.reply({ content: '❌ Hubo un error al ejecutar este comando.', ephemeral: true });
-            }
+            console.error(`Error ejecutando ${interaction.commandName}:`, error);
+            try {
+                const msg = { content: '❌ Hubo un error al ejecutar este comando.', ephemeral: true };
+                if (!interaction.replied && !interaction.deferred) {
+                    await interaction.reply(msg);
+                } else {
+                    await interaction.followUp(msg);
+                }
+            } catch { /* si ni responder funciona, ignorar */ }
         }
     }
+});
+
+process.on('unhandledRejection', (error) => {
+    console.error('❌ Error no controlado:', error);
 });
 
 client.login(process.env.TOKEN);

@@ -6,7 +6,6 @@ const db = new Database(path.join(__dirname, 'dinos.db'));
 db.pragma('journal_mode = WAL');
 db.pragma('synchronous = normal');
 
-// La clave única ahora es (criatura + guild_id) para aislar cada servidor
 db.prepare(`
   CREATE TABLE IF NOT EXISTS dinos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,17 +20,17 @@ db.prepare(`
   )
 `).run();
 
-// Migración silenciosa: si la tabla ya existe sin guild_id, añadirla
 try {
     db.prepare(`ALTER TABLE dinos ADD COLUMN guild_id TEXT NOT NULL DEFAULT 'legacy'`).run();
-    console.log('✅ Columna guild_id añadida a la tabla existente.');
+    console.log('✅ Columna guild_id añadida.');
 } catch {
-    // Ya existe, no hace falta hacer nada
+    // ya existe
 }
 
-console.log('✅ Base de datos SQLite inicializada correctamente.');
+console.log('✅ Base de datos lista.');
 
-// ─── Métodos de acceso ───────────────────────────────────────────────────────
+// solo estas columnas se pueden modificar
+const COLUMNAS_PERMITIDAS = new Set(['hp', 'stamina', 'melee', 'peso']);
 
 function getDino(guildId, criatura) {
     return db.prepare('SELECT * FROM dinos WHERE guild_id = ? AND criatura = ?').get(guildId, criatura);
@@ -54,6 +53,9 @@ function upsertDino(guildId, criatura, { hp, stamina, melee, peso }) {
 }
 
 function updateDino(guildId, criatura, campos) {
+    const invalidas = Object.keys(campos).filter(k => !COLUMNAS_PERMITIDAS.has(k));
+    if (invalidas.length > 0) throw new Error(`Columnas no permitidas: ${invalidas.join(', ')}`);
+
     const sets = Object.keys(campos).map(k => `${k} = @${k}`).join(', ');
     return db.prepare(`UPDATE dinos SET ${sets} WHERE guild_id = @guildId AND criatura = @criatura`)
              .run({ ...campos, guildId, criatura });
